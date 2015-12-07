@@ -27,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
     EditText nametxt, contributeurstxt, devisetxt;
     List<Comptes> Comptes = new ArrayList<Comptes>();
     ListView comptesListView;
+    DatabaseHandler dbHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
         contributeurstxt = (EditText) findViewById(R.id.txtcontributeurs);
         devisetxt = (EditText) findViewById(R.id.txtdevise);
         comptesListView = (ListView) findViewById(R.id.listView);
+        dbHandler = new DatabaseHandler(getApplicationContext());
         TabHost tabHost = (TabHost) findViewById(R.id.tabHost);
 
         tabHost.setup();
@@ -51,15 +53,22 @@ public class MainActivity extends AppCompatActivity {
         tabSpec.setIndicator("Modifier un compte");
         tabHost.addTab(tabSpec);
 
+
         final Button addbtn = (Button) findViewById(R.id.btnAdd);
         addbtn.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick (View view){
-                addComptes(nametxt.getText().toString(),contributeurstxt.getText().toString(), devisetxt.getText().toString());
-                populateList();
-                Toast.makeText(getApplicationContext(), nametxt.getText().toString() + "à été créé.", Toast.LENGTH_SHORT).show();
+            public void onClick(View view) {
+                Comptes compte = new Comptes(dbHandler.getCompteCount(), String.valueOf(nametxt.getText()), String.valueOf(contributeurstxt.getText()), String.valueOf(devisetxt.getText()));
+                if (!comptesExists(compte)) {
+                    dbHandler.createCompte(compte);
+                    Comptes.add(compte);
+                    Toast.makeText(getApplicationContext(), String.valueOf(nametxt.getText()) + " à été créé !", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Toast.makeText(getApplicationContext(), String.valueOf(nametxt.getText()) + " existe déjà, changé de nom.", Toast.LENGTH_SHORT).show();
             }
         });
+
 
 
 
@@ -79,10 +88,38 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+
+        List<Comptes> addableComptes = dbHandler.getAllComptes();
+        int compteCount = dbHandler.getCompteCount();
+
+        for (int i = 0; i < compteCount ; i++){
+            Comptes.add(addableComptes.get(i));
+        }
+
+        if(!addableComptes.isEmpty())
+            populateList();
+
     }
 
+
+
+
+
+    private boolean comptesExists(Comptes compte) {
+        String name = compte.getName();
+        int contactCount = Comptes.size();
+
+        for (int i = 0; i < contactCount; i++) {
+            if (name.compareToIgnoreCase(Comptes.get(i).getName()) == 0)
+                return true;
+        }
+        return false;
+    }
+
+
+
     private void addComptes(String name, String contributeurs, String devise) {
-        Comptes.add(new Comptes(name, contributeurs, devise));
+        Comptes.add(new Comptes(0, name, contributeurs, devise));
     }
 
     private class ComptesListAdapter extends ArrayAdapter<Comptes> {
